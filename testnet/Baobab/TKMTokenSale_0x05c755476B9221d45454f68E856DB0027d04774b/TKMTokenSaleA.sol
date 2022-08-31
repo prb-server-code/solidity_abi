@@ -11,7 +11,7 @@ contract TKMTokenSaleA is Owner {
     // 구매 유저, 토큰 판매 수량(락 물량 포함)
     event Sale(address indexed from, uint8 order, uint256 amount);
 
-    // 락 토큰 찾아가기. order = 1 ~ 18, amount = 1회 찾아간 수량
+    // 락 토큰 찾아가기. order = 0 ~ 24, amount = 1회 찾아간 수량
     event Claim(address indexed from, uint8 order, uint256 amount);
 
     /////////////////////////////////////////////////////
@@ -34,12 +34,16 @@ contract TKMTokenSaleA is Owner {
 
     /////////////////////////////////////////////////////
     // 락 토큰 보관 및 지급
-    // 토큰 상장 후 최초로 찾아갈 수 있는 시간
+    // 첫 배포 시간. 10%
+    uint256 public tokenFirstClaimTime;
+    // 토큰 상장 후 최초로 찾아갈 수 있는 시간. 3.75%
     uint256 public tokenClaimTime;
     // 상장 후 최초 풀리는 개월 수 이후에 지급할 횟수 별 날짜 단위
     uint8 public releaseOrderDay = 30;
     // 상장 후 최초 풀리는 개월 수 이후에 지급할 횟수
     uint8 public releaseOrderCount = 24;
+    // 유저별 첫 배포 토큰 수량
+    mapping(address => uint256) public firstTokens;
     // 유저별 남은 토큰. 1회 수량
     mapping(address => uint256) public lockedTokens;
     // 유저별 락 토큰 지급 상태
@@ -92,13 +96,13 @@ contract TKMTokenSaleA is Owner {
     // ico 차수 증가. 진행중인 회차 종료시 호출해야 함
     function incOrder() public onlyOwner {
         // 진행중인 차수의 미판매 수량 다음으로 넘기기
-        uint256 remainTokenAmount = saleOrders[order].totalAmount - saleOrders[order].sellAmount;
+        // uint256 remainTokenAmount = saleOrders[order].totalAmount - saleOrders[order].sellAmount;
 
         // 진행중인 차수 증가
         order++;
 
         // 다음 회차에 증가
-        saleOrders[order].totalAmount += remainTokenAmount;
+        // saleOrders[order].totalAmount += remainTokenAmount;
     }
 
 /*
@@ -145,20 +149,28 @@ contract TKMTokenSaleA is Owner {
         uint256 remainToken = validBuyToken - sendToken;
         lockedTokens[msg.sender] += remainToken / releaseOrderCount;
 
+        // 첫 배포 토큰 기록
+        firstTokens[msg.sender] += sendToken;
         // ico 요청자에게 토큰 전송
-        require(
-            TKMToken.transferFrom(Operator, msg.sender, sendToken),
-            "[TKMTokenSale][sale]: unable to send token, recipient may have reverted"
-        );
+        // require(
+        //     TKMToken.transferFrom(Operator, msg.sender, sendToken),
+        //     "[TKMTokenSale][sale]: unable to send token, recipient may have reverted"
+        // );
 
         emit Sale(msg.sender, order, validBuyToken);
     }
 
     // 토큰 상장 후 최초로 찾아갈 수 있는 시간 설정. 한번만 가능함
-    function setTokenClaimTime(uint256 _tokenClaimTime) public onlyOwner {
-        require(0 == tokenClaimTime, "[TKMTokenSale][setTokenClaimTime]: already set token claim time");
-        tokenClaimTime = _tokenClaimTime;
+    function setFirstClaimTime(uint256 _firstClaimTime) public onlyOwner {
+        require(0 == tokenFirstClaimTime, "[TKMTokenSale][setFirstClaimTime]: already set token first claim time");
+        tokenFirstClaimTime = _firstClaimTime;
     }
+
+    function setClaimTime(uint256 _claimTime) public onlyOwner {
+        require(0 == tokenClaimTime, "[TKMTokenSale][setClaimTime]: already set token claim time");
+        tokenClaimTime = _claimTime;
+    }
+
 /*
     // 토큰 상장 후 최초로 찾아갈 수 있는 시간
     uint256 private tokenClaimTime;
@@ -171,6 +183,28 @@ contract TKMTokenSaleA is Owner {
     // 유저별 락 토큰 지급 상태
     mapping(address => mapping(uint8 => bool)) public lockedTokenTransfer;
 */
+    // 첫 배포 토큰 요청
+    function claimFirst() public {
+        // 최초로 찾아갈 수 있는 시간이 없으면 실패
+        require(0 < tokenFirstClaimTime, "[TKMTokenSale][claimFirst]: time is not setup yet");
+        // 이미 지급했는지 확인
+        require(false == lockedTokenTransfer[msg.sender][0], "[TKMTokenSale][claimFirst]: already claimed");
+        // 지급 설정
+        lockedTokenTransfer[msg.sender][0] = true;
+        // 날짜 체크
+        require(block.timestamp > tokenFirstClaimTime, "[TKMTokenSale][claimFirst]: remaining time is still left");
+        // 지급 토큰 수량
+        uint256 tokenAmount = firstTokens[msg.sender];
+        require(tokenAmount > 0, "[TKMTokenSale][claimFirst]: receivable tokens are not found");
+        // 지급 처리
+        require(
+            TKMToken.transferFrom(Operator, msg.sender, tokenAmount),
+            "[TKMTokenSale][claimFirst]: unable to send token, recipient may have reverted"
+        );
+
+        emit Claim(msg.sender, 0, tokenAmount);
+    }
+
     // 락상태 토큰 전송 요청 기능
     function claim(uint8 claimOrder) public {
         // 최초로 찾아갈 수 있는 시간이 없으면 실패
@@ -183,7 +217,7 @@ contract TKMTokenSaleA is Owner {
         lockedTokenTransfer[msg.sender][claimOrder] = true;
         // 날짜 체크
         // uint256 releaseTime = tokenClaimTime + ((releaseOrderDay * (uint256(claimOrder) - 1)) * 86400); // 1 days == 86400
-        uint256 releaseTime = tokenClaimTime + ((15 * (uint256(claimOrder) - 1)) * 60);     // 15분
+        uint256 releaseTime = tokenClaimTime + ((10 * (uint256(claimOrder) - 1)) * 60);     // 10분
         require(block.timestamp > releaseTime, "[TKMTokenSale][claim]: remaining time is still left");
         // 지급 토큰 수량
         uint256 tokenAmount = lockedTokens[msg.sender];
