@@ -102,7 +102,7 @@ contract TKMInoA is Owner {
         // 최대 구매 박스를 초과했는지 체크
         uint256 currentNftId = currentNftIds[order];
         currentNftIds[order] += boxAmount;
-        require(currentNftIds[order] <= saleOrders[order].endBoxId, "[TKMInoA][sale1]: Not enough boxes are left");
+        require(currentNftIds[order] - 1 <= saleOrders[order].endBoxId, "[TKMInoA][sale1]: Not enough boxes are left");
         
         for (uint256 i = 0; i < boxAmount; i++) {
             TKMBox.safeTransferFrom(Operator, msg.sender, currentNftId + i);
@@ -131,7 +131,7 @@ contract TKMInoA is Owner {
         // 최대 구매 박스를 초과했는지 체크
         uint256 currentNftId = currentNftIds[order];
         currentNftIds[order] += boxAmount;
-        require(currentNftIds[order] <= saleOrders[order].endBoxId, "[TKMInoA][sale2]: Not enough boxes are left");
+        require(currentNftIds[order] - 1 <= saleOrders[order].endBoxId, "[TKMInoA][sale2]: Not enough boxes are left");
         
         for (uint256 i = 0; i < boxAmount; i++) {
             TKMBox.safeTransferFrom(Operator, msg.sender, currentNftId + i);
@@ -157,7 +157,7 @@ contract TKMInoA is Owner {
         // 최대 구매 박스를 초과했는지 체크
         uint256 currentNftId = currentNftIds[order];
         currentNftIds[order] += boxAmount;
-        require(currentNftIds[order] <= saleOrders[order].endBoxId, "[TKMInoA][sale3]: Not enough boxes are left");
+        require(currentNftIds[order] - 1 <= saleOrders[order].endBoxId, "[TKMInoA][sale3]: Not enough boxes are left");
         
         for (uint256 i = 0; i < boxAmount; i++) {
             TKMBox.safeTransferFrom(Operator, msg.sender, currentNftId + i);
@@ -183,7 +183,7 @@ contract TKMInoA is Owner {
         // 최대 구매 박스를 초과했는지 체크
         uint256 currentNftId = currentNftIds[order];
         currentNftIds[order] += boxAmount;
-        require(currentNftIds[order] <= saleOrders[order].endBoxId, "[TKMInoA][sale4]: Not enough boxes are left");
+        require(currentNftIds[order] - 1 <= saleOrders[order].endBoxId, "[TKMInoA][sale4]: Not enough boxes are left");
         
         for (uint256 i = 0; i < boxAmount; i++) {
             TKMBox.safeTransferFrom(Operator, msg.sender, currentNftId + i);
@@ -212,7 +212,7 @@ contract TKMInoA is Owner {
         // 최대 구매 박스를 초과했는지 체크
         uint256 currentNftId = currentNftIds[order];
         currentNftIds[order] += boxAmount;
-        require(currentNftIds[order] <= saleOrders[order].endBoxId, "[TKMInoA][sale5]: Not enough boxes are left");
+        require(currentNftIds[order] - 1 <= saleOrders[order].endBoxId, "[TKMInoA][sale5]: Not enough boxes are left");
         
         for (uint256 i = 0; i < boxAmount; i++) {
             TKMBox.safeTransferFrom(Operator, msg.sender, currentNftId + i);
@@ -241,7 +241,7 @@ contract TKMInoA is Owner {
         // 최대 구매 박스를 초과했는지 체크
         uint256 currentNftId = currentNftIds[order];
         currentNftIds[order] += boxAmount;
-        require(currentNftIds[order] <= saleOrders[order].endBoxId, "[TKMInoA][sale6]: Not enough boxes are left");
+        require(currentNftIds[order] - 1 <= saleOrders[order].endBoxId, "[TKMInoA][sale6]: Not enough boxes are left");
         
         for (uint256 i = 0; i < boxAmount; i++) {
             TKMBox.safeTransferFrom(Operator, msg.sender, currentNftId + i);
