@@ -56,6 +56,8 @@ contract TKMBoxA is ERC721, ERC721Enumerable, ERC721URIStorage, Owner, Minter {
         );
         boxOpened[tokenId] = true;
         emit BoxOpen(msg.sender, tokenId);
+
+        _burn(tokenId);
     }
 
     function _baseURI() internal pure override returns (string memory) {
