@@ -20,7 +20,7 @@ contract TKMInoA is Owner {
         uint256 startTime; // 시작 시간
         uint256 endTime; // 종료 시간
         uint256 price; // 박스 가격(klay)
-        uint256 limitPerUser; // 이번 회차에 유저당 구입 가능 박스 제한 수량
+        uint256 limitPerUser; // 이번 회차에 유저당 구입 가능 박스 제한 수량. 10000개 이상이면 일인당 구매 제한이 없는 걸로 프론트랑 협의 함
         bool whiteList; // 화이트 리스트 적용 여부
     }
     // 1~6차 => Box Sale 정보

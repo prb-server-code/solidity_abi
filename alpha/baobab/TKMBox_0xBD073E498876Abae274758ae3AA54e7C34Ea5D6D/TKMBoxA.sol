@@ -10,15 +10,6 @@ import "./Owner.sol";
 contract TKMBoxA is ERC721, ERC721Enumerable, ERC721URIStorage, Owner, Minter {
     event BoxOpen(address indexed opener, uint256 indexed tokenId);
 
-    // owned box
-    struct Boxes {
-        uint256 tokenId;
-        bool isOpened;
-    }
-
-    // Mapping from token ID to box opened
-    mapping(uint256 => bool) public boxOpened;
-
     constructor(address minter_)
         ERC721("Three Kingdom Multiverse Box", "3KMBox_A")
         Minter(minter_)
@@ -33,14 +24,13 @@ contract TKMBoxA is ERC721, ERC721Enumerable, ERC721URIStorage, Owner, Minter {
     function collection(address owner)
         public
         view
-        returns (string memory, Boxes[] memory)
+        returns (string memory, uint256[] memory)
     {
         uint256 boxAmount = ERC721.balanceOf(owner);
-        Boxes[] memory boxes = new Boxes[](boxAmount);
+        uint256[] memory boxes = new uint256[](boxAmount);
         for (uint256 i = 0; i < boxAmount; i++) {
             uint256 tokenId = ERC721Enumerable.tokenOfOwnerByIndex(owner, i);
-            boxes[i].tokenId = tokenId;
-            boxes[i].isOpened = boxOpened[tokenId];
+            boxes[i] = tokenId;
         }
         return (_baseURI(), boxes);
     }
@@ -50,11 +40,7 @@ contract TKMBoxA is ERC721, ERC721Enumerable, ERC721URIStorage, Owner, Minter {
             msg.sender == ownerOf(tokenId),
             "TKMBox: only token owner can open"
         );
-        require(
-            false == boxOpened[tokenId],
-            "TKMBox: already token is opened"
-        );
-        boxOpened[tokenId] = true;
+        
         emit BoxOpen(msg.sender, tokenId);
 
         _burn(tokenId);
