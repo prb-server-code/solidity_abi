@@ -15,16 +15,16 @@ contract TKMBoxA is ERC721, ERC721Enumerable, ERC721URIStorage, Owner, Minter {
         Minter(minter_)
     {}
 
-    function inoMint(uint256 startId, uint256 endId) external onlyMinter {
+    function inoMint(address to, uint256 startId, uint256 endId) external onlyMinter {
         for (uint256 k = startId; k <= endId; k++) {
-            _safeMint(msg.sender, k);
+            _safeMint(to, k);
         }
     }
 
     function collection(address owner)
         public
         view
-        returns (string memory, uint256[] memory)
+        returns (uint256[] memory)
     {
         uint256 boxAmount = ERC721.balanceOf(owner);
         uint256[] memory boxes = new uint256[](boxAmount);
@@ -32,7 +32,7 @@ contract TKMBoxA is ERC721, ERC721Enumerable, ERC721URIStorage, Owner, Minter {
             uint256 tokenId = ERC721Enumerable.tokenOfOwnerByIndex(owner, i);
             boxes[i] = tokenId;
         }
-        return (_baseURI(), boxes);
+        return boxes;
     }
 
     function boxOpen(uint256 tokenId) external {
