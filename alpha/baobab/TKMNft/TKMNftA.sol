@@ -7,15 +7,16 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "./Owner.sol";
 
-contract TKMNftA is ERC721, ERC721Enumerable, ERC721URIStorage, Owner, Minter {
+contract TKMNftA is ERC721, ERC721Enumerable, ERC721URIStorage, Owner, Minter, Holder {
     event NftBurn(uint256 indexed tokenId, uint16 indexed reason);
 
     // nft token id
     uint256 public nftId;
 
-    constructor(address minter_)
+    constructor(address _minter, address _holder)
         ERC721("Three Kingdom Multiverse Nft", "3KMNft_A")
-        Minter(minter_)
+        Minter(_minter)
+        Holder(_holder)
     {}
 
     function Mint(address nftOwner) external onlyMinter returns (uint256) {
@@ -24,9 +25,9 @@ contract TKMNftA is ERC721, ERC721Enumerable, ERC721URIStorage, Owner, Minter {
         return nftId;
     }
 
-    function Burn(uint256 _nftId, uint16 reason) external onlyMinter {
-        _burn(_nftId);
-        emit NftBurn(_nftId, reason);
+    function Burn(uint256 _tokenId, uint16 reason) external onlyHolder {
+        _burn(_tokenId);
+        emit NftBurn(_tokenId, reason);
     }
 
     function _baseURI() internal pure override returns (string memory) {
