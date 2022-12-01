@@ -8,19 +8,19 @@ contract TKMStaking1A is Owner {
     ERC721 public TKMNft; // tkm nft
     address public NftHolder; // NFT 보관할 지갑 주소
 
-    // 보상 타입. 1: 3km token, 2: dtc token, 3: gem
-    uint8[] public rewardTypeList = [1, 2, 3];
-    mapping(uint8 => bool) public rewardTypes;
+    // stakeId (1 ~ 4: 3km, 5 ~ 8: dtc)
+    uint256[] public stakeIdList = [1, 2, 3, 4, 5, 6, 7, 8];
+    mapping(uint256 => bool) public stakeIds;
 
     // 스테이킹 인덱스
     uint256 public stakingIdx;
 
-    // 스테이킹 참여(참여 지갑, 블록 넘버, 스테이킹 인덱스, nft id 리스트)
-    event Stake(address indexed from, uint256 blockNumber, uint256 stakingIdx, uint8 rewardType, uint256[] ids);
+    // 스테이킹 참여(참여 지갑, 블록 넘버, stakeId, 스테이킹 인덱스, nft id 리스트)
+    event Stake(address indexed from, uint256 blockNumber, uint256 stakeId, uint256 stakingIdx, uint256[] ids);
     // 스테이킹 회수
     event Withdraw(address indexed from, uint256 blockNumber, uint256 stakingIdx);
     // 스테이킹 보상
-    event Claim(address indexed from, uint256 blockNumber, uint256 stakingIdx, bool ended);
+    event Harvest(address indexed from, uint256 blockNumber, uint256 stakingIdx);
 
     /////////////////////////////////////////////////////
     // Staking
@@ -29,17 +29,15 @@ contract TKMStaking1A is Owner {
         uint256 startTime; // 시작 시간
         uint256 endTime; // 종료 시간
         uint8 nftAmount; // 1회 스테이킹 가능한 NFT 수량(3개)
-        uint8 claimMaxCount; // 1회 스테이킹의 클레임 가능 최대 횟수
     }
 
-    // 보상별 스테이킹
-    mapping(uint8 => staking) public stakings;
+    // stake id별 스테이킹
+    mapping(uint256 => staking) public stakings;
 
     // 스테이킹 현황
     struct stakingProgress {
         address user; // 유저 지갑 주소
-        uint8 rewardType; // 보상 타입
-        uint8 claimCount; // 클레임 진행 횟수
+        uint256 stakeId; // stake id
         uint256[] ids; // 스테이킹한 NFT ID
     }
 
@@ -50,76 +48,73 @@ contract TKMStaking1A is Owner {
         TKMNft = ERC721(payable(_TKMNft));
         NftHolder = _NftHolder;
 
-        // 보상 타입 기록
-        for (uint256 i = 0; i < rewardTypeList.length; i++) {
-            rewardTypes[rewardTypeList[i]] = true;
+        // stake id 셋팅
+        for (uint256 i = 0; i < stakeIdList.length; i++) {
+            stakeIds[stakeIdList[i]] = true;
         }
     }
 
     // 스테이킹 정보 설정
     function setStaking(
-        uint8 _rewardType,
+        uint256 _stakeId,
         uint256 _startTime,
         uint256 _endTime,
-        uint8 _nftAmount,
-        uint8 _claimMaxCount
+        uint8 _nftAmount
     ) public onlyOwner {
         // 종료 시간만 변경 가능
-        if(0 != stakings[_rewardType].startTime) {
-            require(_endTime > stakings[_rewardType].startTime, "[TKMStakingHeroA][setStaking]: _endTime is under _startTime");
-            require(_endTime > block.timestamp, "[TKMStakingHeroA][setStaking]: _endTime is under now");
-            stakings[_rewardType].endTime = _endTime;
+        if(0 != stakings[_stakeId].startTime) {
+            require(_endTime > stakings[_stakeId].startTime, "[TKMStaking1A][setStaking]: _endTime is under _startTime");
+            require(_endTime > block.timestamp, "[TKMStaking1A][setStaking]: _endTime is under now");
+            stakings[_stakeId].endTime = _endTime;
             return;
         }
 
         // 시간 체크
-        require(_endTime > block.timestamp, "[TKMStakingHeroA][setStaking]: _endTime is under now");
+        require(_endTime > block.timestamp, "[TKMStaking1A][setStaking]: _endTime is under now");
 
-        staking storage nation = stakings[_rewardType];
-        nation.startTime = _startTime;
-        nation.endTime = _endTime;
-        nation.nftAmount = _nftAmount;
-        nation.claimMaxCount = _claimMaxCount;
+        staking storage newStake = stakings[_stakeId];
+        newStake.startTime = _startTime;
+        newStake.endTime = _endTime;
+        newStake.nftAmount = _nftAmount;
     }
 
     // 스테이킹 참여
-    function stake(uint8 _rewardType, uint256[] memory _ids) public {
-        // 보상 체크
-        require(true == rewardTypes[_rewardType], "[TKMStakingHeroA][stake]: invalid reward type value");
+    function stake(uint256 _stakeId, uint256[] memory _ids) public {
+        // stake id 체크
+        require(true == stakeIds[_stakeId], "[TKMStaking1A][stake]: invalid stake id");
 
         // 기간 체크
-        require(stakings[_rewardType].startTime <= block.timestamp, "[TKMStakingHeroA][staking]: staking is not started");
-        require(stakings[_rewardType].endTime >= block.timestamp, "[TKMStakingHeroA][staking]: staking is ended");
+        require(stakings[_stakeId].startTime <= block.timestamp, "[TKMStaking1A][staking]: staking is not started");
+        require(stakings[_stakeId].endTime >= block.timestamp, "[TKMStaking1A][staking]: staking is ended");
 
         // nft 수량 체크
-        require(stakings[_rewardType].nftAmount == _ids.length, "[TKMStakingHeroA][staking]: not equal nftAmount");
+        require(stakings[_stakeId].nftAmount == _ids.length, "[TKMStaking1A][staking]: not equal nftAmount");
 
         // 오너 체크
-        for (uint256 i = 0; i < stakings[_rewardType].nftAmount; i++) {
-            require(TKMNft.ownerOf(_ids[i]) == msg.sender, "[TKMStakingHeroA][staking]: owner invalid");
+        for (uint256 i = 0; i < stakings[_stakeId].nftAmount; i++) {
+            require(TKMNft.ownerOf(_ids[i]) == msg.sender, "[TKMStaking1A][staking]: owner invalid");
         }
 
         // 스테이킹 인덱스 증가
         ++stakingIdx;
-        for (uint256 i = 0; i < stakings[_rewardType].nftAmount; i++) {
+        for (uint256 i = 0; i < stakings[_stakeId].nftAmount; i++) {
             TKMNft.safeTransferFrom(msg.sender, NftHolder, _ids[i]);
         }
 
         // 현황 기록
         stakingProgress storage progress = progressing[stakingIdx];
         progress.user = msg.sender;
-        progress.rewardType = _rewardType;
-        progress.claimCount = 0;
+        progress.stakeId = _stakeId;
         progress.ids = _ids;
 
-        emit Stake(msg.sender, block.number, stakingIdx, _rewardType, _ids);
+        emit Stake(msg.sender, block.number, _stakeId, stakingIdx, _ids);
     }
 
     // 회수
     function withdraw(uint256 _stakingIdx) public {
         // 스테이킹 존재 및 지갑 주소 체크
-        require(progressing[_stakingIdx].user != address(0), "[TKMStakingHeroA][cancel]: not exist staking data");
-        require(progressing[_stakingIdx].user == msg.sender, "[TKMStakingHeroA][cancel]: not Owner");
+        require(progressing[_stakingIdx].user != address(0), "[TKMStaking1A][withdraw]: not exist staking data");
+        require(progressing[_stakingIdx].user == msg.sender, "[TKMStaking1A][withdraw]: not Owner");
 
         // 기록 제거
         uint256[] memory ids = progressing[_stakingIdx].ids;
@@ -133,22 +128,16 @@ contract TKMStaking1A is Owner {
         emit Withdraw(msg.sender, block.number, _stakingIdx);
     }
 
-    // 클레임
-    function claim(uint256 _stakingIdx) public {
+    // harvest
+    function harvest(uint256 _stakingIdx) public {
         // 스테이킹 존재 및 지갑 주소 체크
-        require(progressing[_stakingIdx].user != address(0), "[TKMStakingHeroA][claim]: not exist staking data");
-        require(progressing[_stakingIdx].user == msg.sender, "[TKMStakingHeroA][claim]: not Owner");
+        require(progressing[_stakingIdx].user != address(0), "[TKMStaking1A][harvest]: not exist staking data");
+        require(progressing[_stakingIdx].user == msg.sender, "[TKMStaking1A][harvest]: not Owner");
 
-        // 클레임 횟수 체크
-        require(progressing[_stakingIdx].claimCount < stakings[progressing[_stakingIdx].rewardType].claimMaxCount, "[TKMStakingHeroA][claim]: claim overflow");
+        emit Harvest(msg.sender, block.number, _stakingIdx);
+    }
 
-        // 기록 수정
-        bool ended = false;
-        progressing[_stakingIdx].claimCount++;
-        if(progressing[_stakingIdx].claimCount >= stakings[progressing[_stakingIdx].rewardType].claimMaxCount) {
-            ended = true;
-        }
-
-        emit Claim(msg.sender, block.number, _stakingIdx, ended);
+    function getIds(uint256 _stakingIdx) public view returns (uint256[] memory ids) {
+        return progressing[_stakingIdx].ids;
     }
 }
