@@ -9,11 +9,18 @@ contract TKMStaking1A is Owner {
     address public NftHolder; // NFT 보관할 지갑 주소
 
     // stakeId (1 ~ 4: 3km, 5 ~ 8: dtc)
-    uint256[] public stakeIdList = [1, 2, 3, 4, 5, 6, 7, 8];
+    uint256[8] public stakeIdList = [1, 2, 3, 4, 5, 6, 7, 8];
     mapping(uint256 => bool) public stakeIds;
 
     // 스테이킹 인덱스
     uint256 public stakingIdx;
+
+    struct stakedInfo {
+        uint256 nftCount; 
+        uint256 walletCount;
+    }
+    // 스테이킹별 카운트
+    stakedInfo[8] public stakedInfoList;
 
     // 스테이킹 참여(참여 지갑, 블록 넘버, stakeId, 스테이킹 인덱스, nft id 리스트)
     event Stake(address indexed from, uint256 blockNumber, uint256 stakeId, uint256 stakingIdx, uint256[] ids);
@@ -51,6 +58,12 @@ contract TKMStaking1A is Owner {
         // stake id 셋팅
         for (uint256 i = 0; i < stakeIdList.length; i++) {
             stakeIds[stakeIdList[i]] = true;
+        }
+
+        // stakedInfo 셋팅
+        for (uint256 i = 0; i < stakeIdList.length; i++) {
+            stakedInfo memory info = stakedInfo(0, 0);
+            stakedInfoList[i] = info;
         }
     }
 
@@ -107,6 +120,10 @@ contract TKMStaking1A is Owner {
         progress.stakeId = _stakeId;
         progress.ids = _ids;
 
+        // stakedInfo 갱신
+        stakedInfoList[_stakeId - 1].nftCount += 3;
+        stakedInfoList[_stakeId - 1].walletCount += 1;
+
         emit Stake(msg.sender, block.number, _stakeId, stakingIdx, _ids);
     }
 
@@ -115,6 +132,10 @@ contract TKMStaking1A is Owner {
         // 스테이킹 존재 및 지갑 주소 체크
         require(progressing[_stakingIdx].user != address(0), "[TKMStaking1A][withdraw]: not exist staking data");
         require(progressing[_stakingIdx].user == msg.sender, "[TKMStaking1A][withdraw]: not Owner");
+
+        // stakedInfo 갱신
+        stakedInfoList[progressing[_stakingIdx].stakeId - 1].nftCount -= 3;
+        stakedInfoList[progressing[_stakingIdx].stakeId - 1].walletCount -= 1;
 
         // 기록 제거
         uint256[] memory ids = progressing[_stakingIdx].ids;
@@ -139,5 +160,9 @@ contract TKMStaking1A is Owner {
 
     function getIds(uint256 _stakingIdx) public view returns (uint256[] memory ids) {
         return progressing[_stakingIdx].ids;
+    }
+
+    function getStakedInfo() public view returns (uint256 blockNumber, stakedInfo[8] memory stakedList) {
+        return (block.number, stakedInfoList);
     }
 }
