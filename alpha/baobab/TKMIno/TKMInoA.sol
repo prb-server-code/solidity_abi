@@ -2,9 +2,10 @@
 pragma solidity ^0.8.14;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "./Owner.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract TKMInoA is Owner {
+contract TKMInoA is Pausable, AccessControl {
     ERC721 public TKMBox;
     address public Operator; // 토큰 분배할 지갑 주소
 
@@ -36,8 +37,17 @@ contract TKMInoA is Owner {
     mapping(uint8 => mapping(address => uint256)) public boxPerUser;
 
     constructor(address _TKMBox, address _Operator) {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         TKMBox = ERC721(payable(_TKMBox));
         Operator = _Operator;
+    }
+
+    function pause() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _pause();
+    }
+
+    function unpause() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
     }
 
     // sale 회차별 설정
@@ -50,7 +60,7 @@ contract TKMInoA is Owner {
         uint256 _price,
         uint256 _limitPerUser,
         bool _whiteList
-    ) public onlyOwner {
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(0 == saleOrders[_order].startTime, "[TKMInoA][setSaleOrder]: this order already set");
 
         require(_order > 0, "[TKMInoA][setSaleOrder]: order must be greater than zero");
@@ -72,7 +82,7 @@ contract TKMInoA is Owner {
     }
 
     // 회차별 whitelist 추가
-    function addWhiteList(uint8 _order, address[] memory _addresses) public onlyOwner {
+    function addWhiteList(uint8 _order, address[] memory _addresses) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_order > 0, "[TKMInoA][addWhiteList]: order must be greater than zero");
         // require(_order < 7, "[TKMInoA][addWhiteList]: order must be less than seven");
 
@@ -84,7 +94,7 @@ contract TKMInoA is Owner {
         }
     }
 
-    function sale(uint8 _order) public payable {
+    function sale(uint8 _order) public payable whenNotPaused {
         require(_order > 0, "[TKMInoA][sale]: order must be greater than zero");
 
         // 기간 체크
@@ -118,7 +128,7 @@ contract TKMInoA is Owner {
     }
 
     // ico 완료 후 지정한 주소로 보관 중인 이더 출금
-    function withdrawEth(address to) public onlyOwner {
+    function withdrawEth(address to) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(to != address(0), "[TKMInoA][withdrawEth]: transfer to the zero address");
         // 해당 주소로 보관 중인 이더 전체 전송
         address payable receiver = payable(to);

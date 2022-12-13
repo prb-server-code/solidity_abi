@@ -2,9 +2,10 @@
 pragma solidity ^0.8.14;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "./Owner.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract TKMStaking1A is Owner {
+contract TKMStaking1A is Pausable, AccessControl {
     ERC721 public TKMNft; // tkm nft
     address public NftHolder; // NFT 보관할 지갑 주소
 
@@ -52,6 +53,7 @@ contract TKMStaking1A is Owner {
     mapping(uint256 => stakingProgress) public progressing;
 
     constructor(address _TKMNft, address _NftHolder) {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         TKMNft = ERC721(payable(_TKMNft));
         NftHolder = _NftHolder;
 
@@ -67,13 +69,21 @@ contract TKMStaking1A is Owner {
         }
     }
 
+    function pause() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _pause();
+    }
+
+    function unpause() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
+    }
+
     // 스테이킹 정보 설정
     function setStaking(
         uint256 _stakeId,
         uint256 _startTime,
         uint256 _endTime,
         uint8 _nftAmount
-    ) public onlyOwner {
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         // 종료 시간만 변경 가능
         if(0 != stakings[_stakeId].startTime) {
             require(_endTime > stakings[_stakeId].startTime, "[TKMStaking1A][setStaking]: _endTime is under _startTime");
@@ -92,7 +102,7 @@ contract TKMStaking1A is Owner {
     }
 
     // 스테이킹 참여
-    function stake(uint256 _stakeId, uint256[] memory _ids) public {
+    function stake(uint256 _stakeId, uint256[] memory _ids) public whenNotPaused {
         // stake id 체크
         require(true == stakeIds[_stakeId], "[TKMStaking1A][stake]: invalid stake id");
 
@@ -128,7 +138,7 @@ contract TKMStaking1A is Owner {
     }
 
     // 회수
-    function withdraw(uint256 _stakingIdx) public {
+    function withdraw(uint256 _stakingIdx) public whenNotPaused {
         // 스테이킹 존재 및 지갑 주소 체크
         require(progressing[_stakingIdx].user != address(0), "[TKMStaking1A][withdraw]: not exist staking data");
         require(progressing[_stakingIdx].user == msg.sender, "[TKMStaking1A][withdraw]: not Owner");
@@ -150,7 +160,7 @@ contract TKMStaking1A is Owner {
     }
 
     // harvest
-    function harvest(uint256 _stakingIdx) public {
+    function harvest(uint256 _stakingIdx) public whenNotPaused {
         // 스테이킹 존재 및 지갑 주소 체크
         require(progressing[_stakingIdx].user != address(0), "[TKMStaking1A][harvest]: not exist staking data");
         require(progressing[_stakingIdx].user == msg.sender, "[TKMStaking1A][harvest]: not Owner");

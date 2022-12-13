@@ -5,17 +5,30 @@ pragma solidity ^0.8.14;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "./Owner.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract TKMBoxA is ERC721, ERC721Enumerable, ERC721URIStorage, Owner, Minter {
+contract TKMBoxA is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, AccessControl {
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+
     event BoxOpen(address indexed opener, uint256 indexed tokenId);
 
-    constructor(address minter_)
+    constructor(address _minter)
         ERC721("Three Kingdom Multiverse Box", "3KMBox_A")
-        Minter(minter_)
-    {}
+    {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, _minter);
+    }
 
-    function inoMint(address to, uint256 startId, uint256 endId) external onlyMinter {
+    function pause() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _pause();
+    }
+
+    function unpause() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
+    }
+
+    function inoMint(address to, uint256 startId, uint256 endId) external onlyRole(MINTER_ROLE) {
         for (uint256 k = startId; k <= endId; k++) {
             _safeMint(to, k);
         }
@@ -35,7 +48,7 @@ contract TKMBoxA is ERC721, ERC721Enumerable, ERC721URIStorage, Owner, Minter {
         return boxes;
     }
 
-    function boxOpen(uint256 tokenId) external {
+    function boxOpen(uint256 tokenId) external whenNotPaused {
         require(
             msg.sender == ownerOf(tokenId),
             "TKMBox: only token owner can open"
@@ -54,7 +67,7 @@ contract TKMBoxA is ERC721, ERC721Enumerable, ERC721URIStorage, Owner, Minter {
         address from,
         address to,
         uint256 tokenId
-    ) internal override(ERC721, ERC721Enumerable) {
+    ) internal whenNotPaused override(ERC721, ERC721Enumerable) {
         super._beforeTokenTransfer(from, to, tokenId);
     }
 
@@ -77,7 +90,7 @@ contract TKMBoxA is ERC721, ERC721Enumerable, ERC721URIStorage, Owner, Minter {
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721, ERC721Enumerable)
+        override(ERC721, ERC721Enumerable, AccessControl)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
