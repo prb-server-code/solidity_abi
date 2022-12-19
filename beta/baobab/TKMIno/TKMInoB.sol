@@ -2,9 +2,10 @@
 pragma solidity ^0.8.14;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "./Owner.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract TKMInoB is Owner {
+contract TKMInoB is Pausable, AccessControl {
     ERC721 public TKMBox;
     address public Operator;
 
@@ -30,8 +31,17 @@ contract TKMInoB is Owner {
     mapping(uint8 => mapping(address => uint256)) public boxPerUser;
 
     constructor(address _TKMBox, address _Operator) {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         TKMBox = ERC721(payable(_TKMBox));
         Operator = _Operator;
+    }
+
+    function pause() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _pause();
+    }
+
+    function unpause() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
     }
 
     function setSaleOrder(
@@ -43,7 +53,7 @@ contract TKMInoB is Owner {
         uint256 _price,
         uint256 _limitPerUser,
         bool _whiteList
-    ) public onlyOwner {
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(0 == saleOrders[_order].startTime, "[TKMInoB][setSaleOrder]: this order already set");
 
         require(_order > 0, "[TKMInoB][setSaleOrder]: order must be greater than zero");
@@ -63,7 +73,7 @@ contract TKMInoB is Owner {
         currentNftIds[_order] = _startBoxId;
     }
 
-    function addWhiteList(uint8 _order, address[] memory _addresses) public onlyOwner {
+    function addWhiteList(uint8 _order, address[] memory _addresses) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_order > 0, "[TKMInoB][addWhiteList]: order must be greater than zero");
 
         require(0 < _addresses.length, "[TKMInoB][addWhiteList]: address must be greater than zero");
@@ -74,7 +84,7 @@ contract TKMInoB is Owner {
         }
     }
 
-    function sale(uint8 _order) public payable {
+    function sale(uint8 _order) public payable whenNotPaused {
         require(_order > 0, "[TKMInoB][sale]: order must be greater than zero");
 
         require(saleOrders[_order].startTime <= block.timestamp, "[TKMInoB][sale]: sale is not started");
@@ -102,7 +112,7 @@ contract TKMInoB is Owner {
         }
     }
 
-    function withdrawEth(address to) public onlyOwner {
+    function withdrawEth(address to) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(to != address(0), "[TKMInoB][withdrawEth]: transfer to the zero address");
         address payable receiver = payable(to);
         receiver.transfer(address(this).balance);
