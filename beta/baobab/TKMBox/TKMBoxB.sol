@@ -7,8 +7,9 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract TKMBoxB is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, AccessControl {
+contract TKMBoxB is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, AccessControl, Ownable {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     event BoxOpen(address indexed opener, uint256 indexed tokenId);
