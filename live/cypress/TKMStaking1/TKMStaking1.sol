@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract TKMStaking1B is Pausable, AccessControl {
+contract TKMStaking1 is Pausable, AccessControl {
     ERC721 public TKMNft;
     address public NftHolder;
 
