@@ -15,7 +15,7 @@ contract TKMBox is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, AccessC
     event BoxOpen(address indexed opener, uint256 indexed tokenId);
 
     constructor(address _minter)
-        ERC721("Box2", "Box2")
+        ERC721("Three Kingdom Multiverse Box", "3KMBox")
     {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, _minter);

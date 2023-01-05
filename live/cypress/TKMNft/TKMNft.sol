@@ -17,7 +17,7 @@ contract TKMNft is ERC721, ERC721URIStorage, Pausable, AccessControl, Ownable {
     uint256 public nftId;
 
     constructor(address _minter, address _holder)
-        ERC721("nft2", "nft2")
+        ERC721("Three Kingdom Multiverse Nft", "3KMNft")
     {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, _minter);
