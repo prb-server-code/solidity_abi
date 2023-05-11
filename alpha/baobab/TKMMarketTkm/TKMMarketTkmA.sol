@@ -13,8 +13,8 @@ contract TKMMarketTkmA is TKMMarketTokenA {
 
     // NFT 판매 등록
     function listing(uint256 tokenId, uint256 price) public virtual override {
-        require(price > 0, "listing: price must greater than zero");
-        require(price <= 10000000 ether, "listing: price must less than 10 million");
+        require(price >= 0.001 ether, "listing: price must greater than 0.001 ether");
+        require(price < 1000000000 ether, "listing: price must less than 1000 million");
 
         super.listing(tokenId, price);
 
@@ -24,8 +24,8 @@ contract TKMMarketTkmA is TKMMarketTokenA {
 
     // 아이템 판매 등록
     function listingItem(uint256 itemId, uint256 amount, uint256 price) public virtual override {
-        require(price > 0, "listingItem: price must greater than zero");
-        require(price <= 10000000 ether, "listingItem: price must less than 10 million");
+        require(price >= 0.001 ether, "listingItem: price must greater than 0.001 ether");
+        require(price < 1000000000 ether, "listingItem: price must less than 1000 million");
 
         super.listingItem(itemId, amount, price);
 
